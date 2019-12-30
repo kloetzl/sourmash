@@ -3,10 +3,17 @@ use std::os::raw::c_char;
 use std::slice;
 
 use crate::errors::SourmashError;
+use crate::ffi::utils::ForeignObject;
 use crate::signature::SigsTrait;
 use crate::sketch::minhash::{
     aa_to_dayhoff, aa_to_hp, translate_codon, HashFunctions, KmerMinHash,
 };
+
+pub struct SourmashKmerMinHash;
+
+impl ForeignObject for SourmashKmerMinHash {
+    type RustObject = KmerMinHash;
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn kmerminhash_new(
@@ -18,7 +25,7 @@ pub unsafe extern "C" fn kmerminhash_new(
     seed: u64,
     mx: u64,
     track_abundance: bool,
-) -> *mut KmerMinHash {
+) -> *mut SourmashKmerMinHash {
     // TODO: at most one of (prot, dayhoff, hp) should be true
 
     let hash_function = if dayhoff {
@@ -31,22 +38,19 @@ pub unsafe extern "C" fn kmerminhash_new(
         HashFunctions::murmur64_DNA
     };
 
-    Box::into_raw(Box::new(KmerMinHash::new(
+    SourmashKmerMinHash::from_rust(KmerMinHash::new(
         n,
         k,
         hash_function,
         seed,
         mx,
         track_abundance,
-    ))) as _
+    ))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn kmerminhash_free(ptr: *mut KmerMinHash) {
-    if ptr.is_null() {
-        return;
-    }
-    Box::from_raw(ptr);
+pub unsafe extern "C" fn kmerminhash_free(ptr: *mut SourmashKmerMinHash) {
+    SourmashKmerMinHash::drop(ptr)
 }
 
 #[no_mangle]
