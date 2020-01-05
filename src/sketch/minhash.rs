@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::f64::consts::PI;
 use std::iter::{Iterator, Peekable};
 use std::str;
 
 use failure::Error;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use serde_derive::Deserialize;
@@ -482,6 +483,61 @@ impl KmerMinHash {
         }
     }
 
+    pub fn similarity(&self, other: &KmerMinHash, ignore_abundance: bool) -> Result<f64, Error> {
+        self.check_compatible(other)?;
+
+        if ignore_abundance {
+            if let Ok((common, size)) = self.intersection_size(other) {
+                Ok(common as f64 / u64::max(1, size) as f64)
+            } else {
+                Ok(0.0)
+            }
+        } else {
+            if self.abunds.is_none() || other.abunds.is_none() {
+                // TODO: throw error, we need abundance for this
+                unimplemented!()
+            }
+
+            let abunds = self.abunds.as_ref().unwrap();
+            let other_abunds = other.abunds.as_ref().unwrap();
+
+            let mut prod = 0;
+            let mut other_iter = other.mins.iter().enumerate();
+            let mut next_hash = other_iter.next();
+            let a_sq: u64 = abunds.iter().map(|a| (a * a)).sum();
+            let b_sq: u64 = other_abunds.iter().map(|a| (a * a)).sum();
+
+            for (i, hash) in self.mins.iter().enumerate() {
+                while let Some((j, k)) = next_hash {
+                    match k.cmp(hash) {
+                        Ordering::Less => next_hash = other_iter.next(),
+                        Ordering::Equal => {
+                            // Calling `get_unchecked` here is safe since
+                            // both `i` and `j` are valid indices
+                            // (`i` and `j` came from valid iterator calls)
+                            unsafe {
+                                prod += abunds.get_unchecked(i) * other_abunds.get_unchecked(j);
+                            }
+                            break;
+                        }
+                        Ordering::Greater => break,
+                    }
+                }
+            }
+
+            let norm_a = (a_sq as f64).sqrt();
+            let norm_b = (b_sq as f64).sqrt();
+
+            if norm_a == 0. || norm_b == 0. {
+                return Ok(0.0);
+            }
+
+            let prod = f64::min(prod as f64 / (norm_a * norm_b), 1.);
+            let distance = 2. * prod.acos() / PI;
+            Ok(1. - distance)
+        }
+    }
+
     pub fn containment_ignore_maxhash(&self, other: &KmerMinHash) -> Result<f64, Error> {
         let it = Intersection::new(self.mins.iter(), other.mins.iter());
 
@@ -519,6 +575,15 @@ impl SigsTrait for KmerMinHash {
     }
 
     fn check_compatible(&self, other: &KmerMinHash) -> Result<(), Error> {
+        /*
+        if self.num != other.num {
+            return Err(SourmashError::MismatchNum {
+                n1: self.num,
+                n2: other.num,
+            }
+            .into());
+        }
+        */
         if self.ksize != other.ksize {
             return Err(SourmashError::MismatchKSizes.into());
         }
@@ -641,77 +706,110 @@ fn revcomp(seq: &[u8]) -> Vec<u8> {
         .collect()
 }
 
-lazy_static! {
-    static ref CODONTABLE: HashMap<&'static str, u8> = {
-      [
+static CODONTABLE: Lazy<HashMap<&'static str, u8>> = Lazy::new(|| {
+    [
         // F
-        ("TTT", b'F'), ("TTC", b'F'),
+        ("TTT", b'F'),
+        ("TTC", b'F'),
         // L
-        ("TTA", b'L'), ("TTG", b'L'),
-
+        ("TTA", b'L'),
+        ("TTG", b'L'),
         // S
-        ("TCT", b'S'), ("TCC", b'S'), ("TCA", b'S'), ("TCG", b'S'), ("TCN", b'S'),
-
+        ("TCT", b'S'),
+        ("TCC", b'S'),
+        ("TCA", b'S'),
+        ("TCG", b'S'),
+        ("TCN", b'S'),
         // Y
-        ("TAT", b'Y'), ("TAC", b'Y'),
+        ("TAT", b'Y'),
+        ("TAC", b'Y'),
         // *
-        ("TAA", b'*'), ("TAG", b'*'),
-
+        ("TAA", b'*'),
+        ("TAG", b'*'),
         // *
         ("TGA", b'*'),
         // C
-        ("TGT", b'C'), ("TGC", b'C'),
+        ("TGT", b'C'),
+        ("TGC", b'C'),
         // W
         ("TGG", b'W'),
-
         // L
-        ("CTT", b'L'), ("CTC", b'L'), ("CTA", b'L'), ("CTG", b'L'), ("CTN", b'L'),
-
+        ("CTT", b'L'),
+        ("CTC", b'L'),
+        ("CTA", b'L'),
+        ("CTG", b'L'),
+        ("CTN", b'L'),
         // P
-        ("CCT", b'P'), ("CCC", b'P'), ("CCA", b'P'), ("CCG", b'P'), ("CCN", b'P'),
-
+        ("CCT", b'P'),
+        ("CCC", b'P'),
+        ("CCA", b'P'),
+        ("CCG", b'P'),
+        ("CCN", b'P'),
         // H
-        ("CAT", b'H'), ("CAC", b'H'),
+        ("CAT", b'H'),
+        ("CAC", b'H'),
         // Q
-        ("CAA", b'Q'), ("CAG", b'Q'),
-
+        ("CAA", b'Q'),
+        ("CAG", b'Q'),
         // R
-        ("CGT", b'R'), ("CGC", b'R'), ("CGA", b'R'), ("CGG", b'R'), ("CGN", b'R'),
-
+        ("CGT", b'R'),
+        ("CGC", b'R'),
+        ("CGA", b'R'),
+        ("CGG", b'R'),
+        ("CGN", b'R'),
         // I
-        ("ATT", b'I'), ("ATC", b'I'), ("ATA", b'I'),
+        ("ATT", b'I'),
+        ("ATC", b'I'),
+        ("ATA", b'I'),
         // M
         ("ATG", b'M'),
-
         // T
-        ("ACT", b'T'), ("ACC", b'T'), ("ACA", b'T'), ("ACG", b'T'), ("ACN", b'T'),
-
+        ("ACT", b'T'),
+        ("ACC", b'T'),
+        ("ACA", b'T'),
+        ("ACG", b'T'),
+        ("ACN", b'T'),
         // N
-        ("AAT", b'N'), ("AAC", b'N'),
+        ("AAT", b'N'),
+        ("AAC", b'N'),
         // K
-        ("AAA", b'K'), ("AAG", b'K'),
-
+        ("AAA", b'K'),
+        ("AAG", b'K'),
         // S
-        ("AGT", b'S'), ("AGC", b'S'),
+        ("AGT", b'S'),
+        ("AGC", b'S'),
         // R
-        ("AGA", b'R'), ("AGG", b'R'),
-
+        ("AGA", b'R'),
+        ("AGG", b'R'),
         // V
-        ("GTT", b'V'), ("GTC", b'V'), ("GTA", b'V'), ("GTG", b'V'), ("GTN", b'V'),
-
+        ("GTT", b'V'),
+        ("GTC", b'V'),
+        ("GTA", b'V'),
+        ("GTG", b'V'),
+        ("GTN", b'V'),
         // A
-        ("GCT", b'A'), ("GCC", b'A'), ("GCA", b'A'), ("GCG", b'A'), ("GCN", b'A'),
-
+        ("GCT", b'A'),
+        ("GCC", b'A'),
+        ("GCA", b'A'),
+        ("GCG", b'A'),
+        ("GCN", b'A'),
         // D
-        ("GAT", b'D'), ("GAC", b'D'),
+        ("GAT", b'D'),
+        ("GAC", b'D'),
         // E
-        ("GAA", b'E'), ("GAG", b'E'),
-
+        ("GAA", b'E'),
+        ("GAG", b'E'),
         // G
-        ("GGT", b'G'), ("GGC", b'G'), ("GGA", b'G'), ("GGG", b'G'), ("GGN", b'G'),
-        ].iter().cloned().collect()
-    };
-}
+        ("GGT", b'G'),
+        ("GGC", b'G'),
+        ("GGA", b'G'),
+        ("GGG", b'G'),
+        ("GGN", b'G'),
+    ]
+    .iter()
+    .cloned()
+    .collect()
+});
 
 // Dayhoff table from
 // Peris, P., López, D., & Campos, M. (2008).
@@ -734,29 +832,39 @@ lazy_static! {
 // | H, K, R       | Basic                 | d       |
 // | I, L, M, V    | Hydrophobic           | e       |
 // | F, W, Y       | Aromatic              | f       |
-lazy_static! {
-    static ref DAYHOFFTABLE: HashMap<u8, u8> = {
-      [
+static DAYHOFFTABLE: Lazy<HashMap<u8, u8>> = Lazy::new(|| {
+    [
         // a
         (b'C', b'a'),
-
         // b
-        (b'A', b'b'), (b'G', b'b'), (b'P', b'b'), (b'S', b'b'), (b'T', b'b'),
-
+        (b'A', b'b'),
+        (b'G', b'b'),
+        (b'P', b'b'),
+        (b'S', b'b'),
+        (b'T', b'b'),
         // c
-        (b'D', b'c'), (b'E', b'c'), (b'N', b'c'), (b'Q', b'c'),
-
+        (b'D', b'c'),
+        (b'E', b'c'),
+        (b'N', b'c'),
+        (b'Q', b'c'),
         // d
-        (b'H', b'd'), (b'K', b'd'), (b'R', b'd'),
-
+        (b'H', b'd'),
+        (b'K', b'd'),
+        (b'R', b'd'),
         // e
-        (b'I', b'e'), (b'L', b'e'), (b'M', b'e'), (b'V', b'e'),
-
+        (b'I', b'e'),
+        (b'L', b'e'),
+        (b'M', b'e'),
+        (b'V', b'e'),
         // e
-        (b'F', b'f'), (b'W', b'f'), (b'Y', b'f'),
-        ].iter().cloned().collect()
-    };
-}
+        (b'F', b'f'),
+        (b'W', b'f'),
+        (b'Y', b'f'),
+    ]
+    .iter()
+    .cloned()
+    .collect()
+});
 
 // HP Hydrophobic/hydrophilic mapping
 // From: Phillips, R., Kondev, J., Theriot, J. (2008).
@@ -767,22 +875,35 @@ lazy_static! {
 // |---------------------------------------|---------|
 // | A, F, G, I, L, M, P, V, W, Y          | h       |
 // | N, C, S, T, D, E, R, H, K, Q          | p       |
-lazy_static! {
-    static ref HPTABLE: HashMap<u8, u8> = {
-        [
-            // h
-            (b'A', b'h'), (b'F', b'h'), (b'G', b'h'), (b'I', b'h'), (b'L', b'h'),
-            (b'M', b'h'), (b'P', b'h'), (b'V', b'h'), (b'W', b'h'), (b'Y', b'h'),
-
-            // p
-            (b'N', b'p'), (b'C', b'p'), (b'S', b'p'), (b'T', b'p'), (b'D', b'p'),
-            (b'E', b'p'), (b'R', b'p'), (b'H', b'p'), (b'K', b'p'), (b'Q', b'p'),
-        ]
-        .iter()
-        .cloned()
-        .collect()
-    };
-}
+static HPTABLE: Lazy<HashMap<u8, u8>> = Lazy::new(|| {
+    [
+        // h
+        (b'A', b'h'),
+        (b'F', b'h'),
+        (b'G', b'h'),
+        (b'I', b'h'),
+        (b'L', b'h'),
+        (b'M', b'h'),
+        (b'P', b'h'),
+        (b'V', b'h'),
+        (b'W', b'h'),
+        (b'Y', b'h'),
+        // p
+        (b'N', b'p'),
+        (b'C', b'p'),
+        (b'S', b'p'),
+        (b'T', b'p'),
+        (b'D', b'p'),
+        (b'E', b'p'),
+        (b'R', b'p'),
+        (b'H', b'p'),
+        (b'K', b'p'),
+        (b'Q', b'p'),
+    ]
+    .iter()
+    .cloned()
+    .collect()
+});
 
 #[inline]
 pub(crate) fn translate_codon(codon: &[u8]) -> Result<u8, Error> {

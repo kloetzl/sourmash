@@ -67,6 +67,8 @@ void kmerminhash_add_word(KmerMinHash *ptr, const char *word);
 
 double kmerminhash_compare(KmerMinHash *ptr, const KmerMinHash *other);
 
+double kmerminhash_similarity(KmerMinHash *ptr, const KmerMinHash *other, bool ignore_abundance);
+
 double kmerminhash_containment_ignore_maxhash(KmerMinHash *ptr, const KmerMinHash *other);
 
 uint64_t kmerminhash_count_common(KmerMinHash *ptr, const KmerMinHash *other);
@@ -78,6 +80,8 @@ void kmerminhash_disable_abundance(KmerMinHash *ptr);
 void kmerminhash_enable_abundance(KmerMinHash *ptr);
 
 void kmerminhash_free(KmerMinHash *ptr);
+
+void kmerminhash_slice_free(uint64_t *ptr, uintptr_t insize);
 
 uint64_t kmerminhash_get_abund_idx(KmerMinHash *ptr, uint64_t idx);
 
@@ -106,6 +110,8 @@ uint32_t kmerminhash_ksize(KmerMinHash *ptr);
 uint64_t kmerminhash_max_hash(KmerMinHash *ptr);
 
 void kmerminhash_merge(KmerMinHash *ptr, const KmerMinHash *other);
+
+bool kmerminhash_is_compatible(const KmerMinHash *ptr, const KmerMinHash *other);
 
 void kmerminhash_mins_push(KmerMinHash *ptr, uint64_t val);
 
