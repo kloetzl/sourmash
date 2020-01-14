@@ -88,6 +88,8 @@ class TarStorage(Storage):
     def load(self, path):
         content = self.tarfile.getmember(path)
         f = self.tarfile.extractfile(content)
+        if f is None:
+            raise Exception("Couldn't load data from tar file")
         return f.read()
 
     def init_args(self):

@@ -288,7 +288,9 @@ def write_records_to_json(records, fp=None, indent=None, sort_keys=True):
             try:
                 fp.write(s.encode('utf-8'))
             except TypeError:  # Python 2
+                # pytype: disable=name-error
                 fp.write(unicode(s))
+                # pytype: enable=name-error
         return None
     return s
 

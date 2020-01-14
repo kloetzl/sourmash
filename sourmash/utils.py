@@ -2,6 +2,7 @@ import weakref
 
 from ._lowlevel import ffi, lib
 from .exceptions import exceptions_by_code, SourmashError
+from ._compat import text_type
 
 attached_refs = weakref.WeakKeyDictionary()
 
