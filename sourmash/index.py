@@ -8,6 +8,8 @@ ABC = ABCMeta("ABC", (object,), {"__slots__": ()})
 
 
 class Index(ABC):
+    filename = None
+
     @abstractmethod
     def signatures(self):
         "Return an iterator over all signatures in the Index object."

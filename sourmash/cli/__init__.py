@@ -56,13 +56,14 @@ class SourmashParser(ArgumentParser):
     def _subparser_from_name(self, name):
         """Given a name, get the subparser instance registered with this parser."""
         container = self._actions
-        if name is None:
-            return None
-        for action in container:
-            if action.choices is None:
-                continue
-            elif name in action.choices:
-                return action.choices[name]
+        if name is not None:
+            for action in container:
+                if action.choices is None:
+                    continue
+                elif name in action.choices:
+                    return action.choices[name]
+
+        raise NameError("name not found")
 
     def print_help(self):
         self.print_citation()

@@ -50,6 +50,7 @@ def error(s, *args, **kwargs):
         sys.stderr.flush()
 
 
+# pytype: disable=attribute-error
 def test_notify():
     global _quiet
 

@@ -59,4 +59,7 @@ wasm:
 wasi:
 	cargo wasi build
 
+pytype:
+	pytype --config pytype.cfg
+
 FORCE:
