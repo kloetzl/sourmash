@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 
 from ._compat import string_types, range_type
 from ._lowlevel import ffi, lib
-from ._minhash import hash_murmur, to_bytes, MinHash
+from ._minhash import to_bytes, MinHash
 from .utils import RustObject, rustcall, decode_str
 from .exceptions import SourmashError
 
@@ -36,17 +36,13 @@ class Nodegraph(RustObject):
         return self._methodcall(lib.nodegraph_update, other._objptr)
 
     def count(self, h):
-        # FIXME this doesn't match khmer internal hashing!
         if isinstance(h, string_types):
-            h = hash_murmur(h)
-
+            return self._methodcall(lib.nodegraph_count_kmer, to_bytes(h))
         return self._methodcall(lib.nodegraph_count, h)
 
     def get(self, h):
-        # FIXME this doesn't match khmer internal hashing!
         if isinstance(h, string_types):
-            h = hash_murmur(h)
-
+            return self._methodcall(lib.nodegraph_get_kmer, to_bytes(h))
         return self._methodcall(lib.nodegraph_get, h)
 
     @property

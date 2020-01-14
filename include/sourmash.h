@@ -138,6 +138,8 @@ bool kmerminhash_track_abundance(KmerMinHash *ptr);
 
 bool nodegraph_count(Nodegraph *ptr, uint64_t h);
 
+bool nodegraph_count_kmer(Nodegraph *ptr, const char *kmer);
+
 double nodegraph_expected_collisions(Nodegraph *ptr);
 
 void nodegraph_free(Nodegraph *ptr);
@@ -147,6 +149,8 @@ Nodegraph *nodegraph_from_buffer(const char *ptr, uintptr_t insize);
 Nodegraph *nodegraph_from_path(const char *filename);
 
 uintptr_t nodegraph_get(Nodegraph *ptr, uint64_t h);
+
+uintptr_t nodegraph_get_kmer(Nodegraph *ptr, const char *kmer);
 
 uintptr_t nodegraph_ksize(Nodegraph *ptr);
 
