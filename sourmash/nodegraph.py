@@ -14,7 +14,7 @@ class Nodegraph(RustObject):
     __dealloc_func__ = lib.nodegraph_free
 
     def __init__(self, ksize, starting_size, n_tables):
-        self._objptr = lib.nodegraph_with_tables(int(starting_size), n_tables, ksize)
+        self._objptr = lib.nodegraph_with_tables(ksize, int(starting_size), n_tables)
 
     @staticmethod
     def load(filename):
