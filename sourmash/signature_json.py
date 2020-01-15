@@ -3,6 +3,8 @@ Extension to sourmash.signature using JSON (making load times of collection of s
 10 to 20 times faster). -- Laurent Gautier
 """
 
+# pytype: skip-file
+
 # This was written for Python 3, may be there is a chance it will work with Python 2...
 from __future__ import print_function, unicode_literals
 

@@ -13,6 +13,7 @@ from .command_index import load_taxonomy_assignments
 
 
 def compare_csv(args):
+    # pytype: disable=attribute-error
     if args.start_column < 2:
         error('error, --start-column cannot be less than 2')
         sys.exit(-1)
@@ -40,6 +41,7 @@ def compare_csv(args):
                                                start_column=args.start_column,
                                                use_headers=not args.no_headers,
                                                force=args.force)
+    # pytype: enable=attribute-error
     notify('loaded {} distinct lineages, {} rows',
            len(set(assignments.values())), num_rows)
 

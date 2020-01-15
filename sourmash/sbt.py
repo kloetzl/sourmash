@@ -179,6 +179,7 @@ class SBT(Index):
             n = Node(self.factory, name="internal." + str(pos))
             self._nodes[0] = n
             pos = self.new_node_pos(node)
+            return
 
         # Cases:
         # 1) parent is a Leaf (already covered)
@@ -1031,8 +1032,10 @@ class Node(object):
         # data from files.
         with NamedTemporaryFile(suffix=".gz") as f:
             self.data.save(f.name)
+            # pytype: disable=attribute-error
             f.file.flush()
             f.file.seek(0)
+            # pytype: enable=attribute-error
             return self.storage.save(path, f.read())
 
     @property
@@ -1046,7 +1049,9 @@ class Node(object):
                 # data from files.
                 with NamedTemporaryFile(suffix=".gz") as f:
                     f.write(data)
+                    # pytype: disable=attribute-error
                     f.file.flush()
+                    # pytype: enable=attribute-error
                     self._data = load_nodegraph(f.name)
         return self._data
 
@@ -1100,7 +1105,9 @@ class Leaf(object):
             # data from files.
             with NamedTemporaryFile(suffix=".gz") as f:
                 f.write(data)
+                # pytype: disable=attribute-error
                 f.file.flush()
+                # pytype: enable=attribute-error
                 self._data = load_nodegraph(f.name)
         return self._data
 
@@ -1113,8 +1120,10 @@ class Leaf(object):
         # data from files.
         with NamedTemporaryFile(suffix=".gz") as f:
             self.data.save(f.name)
+            # pytype: disable=attribute-error
             f.file.flush()
             f.file.seek(0)
+            # pytype: enable=attribute-error
             return self.storage.save(path, f.read())
 
     def update(self, parent):

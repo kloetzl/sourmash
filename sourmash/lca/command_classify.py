@@ -77,6 +77,7 @@ def classify(args):
     """
     main single-genome classification function.
     """
+    # pytype: disable=attribute-error
     if not args.db:
         error('Error! must specify at least one LCA database with --db')
         sys.exit(-1)
@@ -147,6 +148,7 @@ def classify(args):
                 notify(u'\r\033[K', end=u'')
             csvfp.writerow(row)
 
+    # pytype: enable=attribute-error
     notify(u'\r\033[K', end=u'')
     notify('classified {} signatures total', total_count)
 

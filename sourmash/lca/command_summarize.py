@@ -58,6 +58,7 @@ def summarize_main(args):
     """
     main summarization function.
     """
+    # pytype: disable=attribute-error
     if not args.db:
         error('Error! must specify at least one LCA database with --db')
         sys.exit(-1)
@@ -132,6 +133,7 @@ def summarize_main(args):
     # CSV:
     if args.output:
         w = csv.writer(args.output)
+        # pytype: enable=attribute-error
         headers = ['count'] + list(lca_utils.taxlist())
         w.writerow(headers)
 

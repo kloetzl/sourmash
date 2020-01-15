@@ -82,6 +82,9 @@ def gather_signature(query_sig, dblist, ignore_abundance):
         assignments = defaultdict(set)
         for hashval in query_mins:
             for lca_db in dblist:
+                if lca_db.hashval_to_idx is None:
+                    continue
+
                 idx_list = lca_db.hashval_to_idx.get(hashval, [])
 
                 for idx in idx_list:
@@ -182,6 +185,7 @@ def gather_main(args):
     full lineage information for each known hash, as opposed to storing only
     the least-common-ancestor information for it.
     """
+    # pytype: disable=attribute-error
     set_quiet(args.quiet, args.debug)
 
     if not check_files_exist(args.query, *args.db):
@@ -269,6 +273,7 @@ def gather_main(args):
             e.add_many(remaining_mins)
 
             save_signatures([ SourmashSignature(e) ], args.output_unassigned)
+    # pytype: enable=attribute-error
 
 
 if __name__ == '__main__':

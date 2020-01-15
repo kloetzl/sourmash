@@ -184,6 +184,7 @@ class LCA_Database(Index):
         self.ksize = None
         self.scaled = None
         
+        self.ident_to_name = None
         self.ident_to_idx = None
         self.idx_to_lid = None
         self.lid_to_lineage = None

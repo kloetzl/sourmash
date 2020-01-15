@@ -85,7 +85,7 @@ def _find_best(dblist, query):
             assert cont
 
             # note, break ties based on name, to ensure consistent order.
-            if (cont == best_cont and match.name() < best_match.name()) or \
+            if (best_match is None) or (cont == best_cont and match.name() < best_match.name()) or \
                cont > best_cont:
                 # update best match.
                 best_cont = cont

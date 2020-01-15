@@ -20,11 +20,16 @@ def make_lca_counts(dblist, min_num=0):
     # gather all hashvalue assignments from across all the databases
     assignments = defaultdict(set)
     for lca_db in dblist:
+        if lca_db.hashval_to_idx is None:
+            continue
+
         for hashval, idx_list in lca_db.hashval_to_idx.items():
             if min_num and len(idx_list) < min_num:
                 continue
 
             for idx in idx_list:
+                if lca_db.idx_to_lid is None:
+                    continue
                 lid = lca_db.idx_to_lid.get(idx)
                 if lid is not None:
                     lineage = lca_db.lid_to_lineage[lid]
@@ -51,6 +56,7 @@ def rankinfo_main(args):
     """
     rankinfo!
     """
+    # pytype: disable=attribute-error
     if not args.db:
         error('Error! must specify at least one LCA database with --db')
         sys.exit(-1)
@@ -65,6 +71,7 @@ def rankinfo_main(args):
 
     # count all the LCAs across these databases
     counts = make_lca_counts(dblist, args.minimum_num)
+    # pytype: enable=attribute-error
 
     # collect counts across all ranks
     counts_by_rank = defaultdict(int)

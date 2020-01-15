@@ -130,6 +130,7 @@ def index(args):
     """
     main function for building an LCA database.
     """
+    # pytype: disable=attribute-error
     if args.start_column < 2:
         error('error, --start-column cannot be less than 2')
         sys.exit(-1)
@@ -357,6 +358,7 @@ def index(args):
                             unused_identifiers, args.report)
         else:
             notify('(You can use --report to generate a detailed report.)')
+    # pytype: enable=attribute-error
 
 
 if __name__ == '__main__':

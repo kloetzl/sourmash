@@ -50,7 +50,6 @@ def error(s, *args, **kwargs):
         sys.stderr.flush()
 
 
-# pytype: disable=attribute-error
 def test_notify():
     global _quiet
 
@@ -64,7 +63,9 @@ def test_notify():
         saveerr, sys.stderr = sys.stderr, saveerr
 
     print(type(saveerr))
+    # pytype: disable=attribute-error
     assert 'hello, world\n' in saveerr.getvalue()
+    # pytype: enable=attribute-error
 
 
 def test_notify_flush():
@@ -80,7 +81,9 @@ def test_notify_flush():
         saveerr, sys.stderr = sys.stderr, saveerr
 
     print(type(saveerr))
+    # pytype: disable=attribute-error
     assert 'hello, world' in saveerr.getvalue()
+    # pytype: enable=attribute-error
 
 
 def test_notify_end():
@@ -96,7 +99,9 @@ def test_notify_end():
         saveerr, sys.stderr = sys.stderr, saveerr
 
     print(type(saveerr))
+    # pytype: disable=attribute-error
     assert 'hello, worldFOO' in saveerr.getvalue()
+    # pytype: enable=attribute-error
 
 
 def test_notify_quiet():
@@ -112,7 +117,9 @@ def test_notify_quiet():
         saveerr, sys.stderr = sys.stderr, saveerr
 
     print(type(saveerr))
+    # pytype: disable=attribute-error
     assert 'hello, world' not in saveerr.getvalue()
+    # pytype: enable=attribute-error
 
 
 def test_error():
@@ -128,7 +135,9 @@ def test_error():
         saveerr, sys.stderr = sys.stderr, saveerr
 
     print(type(saveerr))
+    # pytype: disable=attribute-error
     assert 'hello, world\n' in saveerr.getvalue()
+    # pytype: enable=attribute-error
 
 
 def test_error_flush():
@@ -144,7 +153,9 @@ def test_error_flush():
         saveerr, sys.stderr = sys.stderr, saveerr
 
     print(type(saveerr))
+    # pytype: disable=attribute-error
     assert 'hello, world' in saveerr.getvalue()
+    # pytype: enable=attribute-error
 
 
 def test_error_quiet():
@@ -161,4 +172,6 @@ def test_error_quiet():
         saveerr, sys.stderr = sys.stderr, saveerr
 
     print(type(saveerr))
+    # pytype: disable=attribute-error
     assert 'hello, world' in saveerr.getvalue()
+    # pytype: enable=attribute-error
