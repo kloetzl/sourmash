@@ -1,5 +1,5 @@
-use sourmash::signature::SigsTrait;
 use sourmash::sketch::minhash::{max_hash_for_scaled, HashFunctions, KmerMinHash};
+use sourmash::sketch::Sketch;
 
 #[test]
 fn throws_error() {

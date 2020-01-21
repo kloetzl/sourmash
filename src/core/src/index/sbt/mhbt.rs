@@ -6,9 +6,8 @@ use failure::Error;
 use crate::index::sbt::{Factory, FromFactory, Node, Update, SBT};
 use crate::index::storage::{ReadData, ReadDataError, ToWriter};
 use crate::index::Comparable;
-use crate::signature::{Signature, SigsTrait};
+use crate::signature::Signature;
 use crate::sketch::nodegraph::Nodegraph;
-use crate::sketch::Sketch;
 
 impl ToWriter for Nodegraph {
     fn to_writer<W>(&self, writer: &mut W) -> Result<(), Error>
@@ -48,23 +47,19 @@ impl Update<Node<Nodegraph>> for Signature {
         // TODO: avoid copy here
         let mut parent_data = parent.data()?.clone();
 
-        if let Sketch::MinHash(sig) = &self.signatures[0] {
-            sig.mins.iter().for_each(|h| {
-                parent_data.count(*h);
-            });
+        let sig = &self.signatures[0];
+        sig.mins.iter().for_each(|h| {
+            parent_data.count(*h);
+        });
 
-            let min_n_below = parent
-                .metadata
-                .entry("min_n_below".into())
-                .or_insert(u64::max_value());
+        let min_n_below = parent
+            .metadata
+            .entry("min_n_below".into())
+            .or_insert(u64::max_value());
 
-            *min_n_below = u64::min(sig.size() as u64, *min_n_below);
-            if *min_n_below == 0 {
-                *min_n_below = 1
-            }
-        } else {
-            //TODO what if it is not a minhash?
-            unimplemented!()
+        *min_n_below = u64::min(sig.size() as u64, *min_n_below);
+        if *min_n_below == 0 {
+            *min_n_below = 1
         }
 
         parent.data = parent_data.into();
@@ -92,40 +87,32 @@ impl Comparable<Signature> for Node<Nodegraph> {
         let ng: &Nodegraph = self.data().unwrap();
 
         // TODO: select the right signatures...
-        if let Sketch::MinHash(sig) = &other.signatures[0] {
-            if sig.size() == 0 {
-                return 0.0;
-            }
-
-            let matches: usize = sig.mins.iter().map(|h| ng.get(*h)).sum();
-
-            let min_n_below = self.metadata["min_n_below"] as f64;
-
-            // This overestimates the similarity, but better than truncating too
-            // soon and losing matches
-            matches as f64 / min_n_below
-        } else {
-            //TODO what if it is not a minhash?
-            unimplemented!()
+        let sig = &other.signatures[0];
+        if sig.size() == 0 {
+            return 0.0;
         }
+
+        let matches: usize = sig.mins.iter().map(|h| ng.get(*h)).sum();
+
+        let min_n_below = self.metadata["min_n_below"] as f64;
+
+        // This overestimates the similarity, but better than truncating too
+        // soon and losing matches
+        matches as f64 / min_n_below
     }
 
     fn containment(&self, other: &Signature) -> f64 {
         let ng: &Nodegraph = self.data().unwrap();
 
         // TODO: select the right signatures...
-        if let Sketch::MinHash(sig) = &other.signatures[0] {
-            if sig.size() == 0 {
-                return 0.0;
-            }
-
-            let matches: usize = sig.mins.iter().map(|h| ng.get(*h)).sum();
-
-            matches as f64 / sig.size() as f64
-        } else {
-            //TODO what if it is not a minhash?
-            unimplemented!()
+        let sig = &other.signatures[0];
+        if sig.size() == 0 {
+            return 0.0;
         }
+
+        let matches: usize = sig.mins.iter().map(|h| ng.get(*h)).sum();
+
+        matches as f64 / sig.size() as f64
     }
 }
 

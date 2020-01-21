@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -7,14 +8,14 @@ use std::str;
 
 use failure::Error;
 use once_cell::sync::Lazy;
-use serde::de::{Deserialize, Deserializer};
-use serde::ser::{Serialize, SerializeStruct, Serializer};
-use serde_derive::Deserialize;
+use serde::de::Deserializer;
+use serde::ser::{SerializeStruct, Serializer};
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::_hash_murmur;
 use crate::errors::SourmashError;
-use crate::signature::SigsTrait;
+use crate::sketch::Sketch;
 
 #[cfg(all(target_arch = "wasm32", target_vendor = "unknown"))]
 use wasm_bindgen::prelude::*;
@@ -246,13 +247,30 @@ impl KmerMinHash {
         self.max_hash
     }
 
-    pub fn md5sum(&self) -> String {
-        let mut md5_ctx = md5::Context::new();
-        md5_ctx.consume(self.ksize().to_string());
-        self.mins
-            .iter()
-            .for_each(|x| md5_ctx.consume(x.to_string()));
-        format!("{:x}", md5_ctx.compute())
+    pub fn check_compatible(&self, other: &KmerMinHash) -> Result<(), Error> {
+        /*
+        if self.num != other.num {
+            return Err(SourmashError::MismatchNum {
+                n1: self.num,
+                n2: other.num,
+            }
+            .into());
+        }
+        */
+        if self.ksize != other.ksize {
+            return Err(SourmashError::MismatchKSizes.into());
+        }
+        if self.hash_function != other.hash_function {
+            // TODO: fix this error
+            return Err(SourmashError::MismatchDNAProt.into());
+        }
+        if self.max_hash != other.max_hash {
+            return Err(SourmashError::MismatchMaxHash.into());
+        }
+        if self.seed != other.seed {
+            return Err(SourmashError::MismatchSeed.into());
+        }
+        Ok(())
     }
 
     pub fn add_hash(&mut self, hash: u64) {
@@ -525,6 +543,12 @@ impl KmerMinHash {
         }
     }
 
+    pub fn containment(&self, other: &KmerMinHash) -> Result<f64, Error> {
+        let common = self.count_common(&other).unwrap();
+        let size = self.mins.len();
+        Ok(common as f64 / size as f64)
+    }
+
     pub fn similarity(&self, other: &KmerMinHash, ignore_abundance: bool) -> Result<f64, Error> {
         self.check_compatible(other)?;
 
@@ -594,16 +618,13 @@ impl KmerMinHash {
         self.hash_function == HashFunctions::murmur64_hp
     }
 
-    pub fn hash_function(&self) -> HashFunctions {
-        self.hash_function
-    }
-
     pub fn mins(&self) -> Vec<u64> {
         self.mins.clone()
     }
 }
 
-impl SigsTrait for KmerMinHash {
+#[typetag::serde]
+impl Sketch for KmerMinHash {
     fn size(&self) -> usize {
         self.mins.len()
     }
@@ -616,30 +637,41 @@ impl SigsTrait for KmerMinHash {
         self.ksize as usize
     }
 
-    fn check_compatible(&self, other: &KmerMinHash) -> Result<(), Error> {
-        /*
-        if self.num != other.num {
-            return Err(SourmashError::MismatchNum {
-                n1: self.num,
-                n2: other.num,
-            }
-            .into());
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn md5sum(&self) -> String {
+        let mut md5_ctx = md5::Context::new();
+        md5_ctx.consume(self.ksize().to_string());
+        self.mins
+            .iter()
+            .for_each(|x| md5_ctx.consume(x.to_string()));
+        format!("{:x}", md5_ctx.compute())
+    }
+
+    fn check_compatible(&self, other: &Box<dyn Sketch>) -> Result<(), Error> {
+        if let Some(omh) = other.as_any().downcast_ref::<KmerMinHash>() {
+            self.check_compatible(omh)
+        } else {
+            unimplemented!()
         }
-        */
-        if self.ksize != other.ksize {
-            return Err(SourmashError::MismatchKSizes.into());
+    }
+
+    fn similarity(&self, other: &Box<dyn Sketch>) -> Result<f64, Error> {
+        if let Some(omh) = other.as_any().downcast_ref::<KmerMinHash>() {
+            self.similarity(omh, true) // FIXME: ignore_abundance
+        } else {
+            unimplemented!()
         }
-        if self.hash_function != other.hash_function {
-            // TODO: fix this error
-            return Err(SourmashError::MismatchDNAProt.into());
+    }
+
+    fn containment(&self, other: &Box<dyn Sketch>) -> Result<f64, Error> {
+        if let Some(omh) = other.as_any().downcast_ref::<KmerMinHash>() {
+            self.containment(&omh)
+        } else {
+            unimplemented!()
         }
-        if self.max_hash != other.max_hash {
-            return Err(SourmashError::MismatchMaxHash.into());
-        }
-        if self.seed != other.seed {
-            return Err(SourmashError::MismatchSeed.into());
-        }
-        Ok(())
     }
 
     fn add_sequence(&mut self, seq: &[u8], force: bool) -> Result<(), Error> {
@@ -750,6 +782,10 @@ impl SigsTrait for KmerMinHash {
         }
 
         Ok(())
+    }
+
+    fn hash_function(&self) -> HashFunctions {
+        self.hash_function
     }
 }
 

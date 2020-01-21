@@ -23,7 +23,7 @@ use std::rc::Rc;
 use failure::Error;
 use log::info;
 use once_cell::sync::OnceCell;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::index::storage::{FSStorage, ReadData, Storage, StorageInfo, ToWriter};

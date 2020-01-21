@@ -1,16 +1,42 @@
 pub mod minhash;
 pub mod nodegraph;
 
-pub mod ukhs;
+use std::any::Any;
 
-use serde_derive::{Deserialize, Serialize};
+use dyn_clone::DynClone;
+use failure::Error;
 
-use crate::sketch::minhash::KmerMinHash;
-use crate::sketch::ukhs::FlatUKHS;
+use crate::sketch::minhash::HashFunctions;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Sketch {
-    MinHash(KmerMinHash),
-    UKHS(FlatUKHS), // FIXME
+//https://github.com/dtolnay/typetag
+#[typetag::serde(tag = "type")]
+pub trait Sketch: DynClone {
+    fn size(&self) -> usize;
+    fn to_vec(&self) -> Vec<u64>;
+    fn check_compatible(&self, other: &Box<dyn Sketch>) -> Result<(), Error>;
+    fn add_sequence(&mut self, seq: &[u8], _force: bool) -> Result<(), Error>;
+    fn add_protein(&mut self, seq: &[u8]) -> Result<(), Error>;
+    fn ksize(&self) -> usize;
+    fn hash_function(&self) -> HashFunctions;
+
+    fn similarity(&self, other: &Box<dyn Sketch>) -> Result<f64, Error>;
+    fn containment(&self, other: &Box<dyn Sketch>) -> Result<f64, Error>;
+    fn md5sum(&self) -> String;
+
+    fn as_any(&self) -> &dyn Any;
+}
+
+dyn_clone::clone_trait_object!(Sketch);
+
+impl std::fmt::Debug for Box<dyn Sketch> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        //write!(f, "{{ x: {}, y: {} }}", self.x, self.y)
+        write!(f, "Sketch")
+    }
+}
+
+impl PartialEq for Box<dyn Sketch> {
+    fn eq(&self, other: &Box<dyn Sketch>) -> bool {
+        unimplemented!()
+    }
 }

@@ -3,7 +3,7 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
 use failure::{Error, Fail};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 #[derive(Debug, Fail)]

@@ -6,7 +6,8 @@ use fixedbitset::FixedBitSet;
 use typed_builder::TypedBuilder;
 
 use crate::index::Index;
-use crate::signature::{Signature, SigsTrait};
+use crate::signature::Signature;
+use crate::sketch::minhash::KmerMinHash;
 use crate::sketch::nodegraph::Nodegraph;
 use crate::sketch::Sketch;
 use crate::HashIntoType;
@@ -47,13 +48,14 @@ impl BIGSI<Signature> {
         let mut ng = Nodegraph::new(&[self.matrix.len()], self.ksize);
 
         // TODO: select correct minhash
-        if let Sketch::MinHash(mh) = &dataset.signatures[0] {
-            for h in &mh.mins {
-                ng.count(*h);
-            }
-        } else {
-            // TODO: what if it is not a mh?
-            unimplemented!()
+        let sig = &dataset.signatures[0];
+        let mh = match sig.as_any().downcast_ref::<KmerMinHash>() {
+            Some(h) => h,
+            None => unimplemented!(),
+        };
+
+        for h in &mh.mins {
+            ng.count(*h);
         }
 
         self.datasets.push(dataset);
@@ -92,37 +94,38 @@ impl<'a> Index<'a> for BIGSI<Signature> {
         let mut results = Vec::new();
 
         //TODO: still assuming one mh in the signature!
-        if let Sketch::MinHash(hashes) = &sig.signatures[0] {
-            let mut counter: HashMap<usize, usize> = HashMap::with_capacity(hashes.size());
+        let sig_h = &sig.signatures[0];
+        let hashes = match sig_h.as_any().downcast_ref::<KmerMinHash>() {
+            Some(h) => h,
+            None => unimplemented!(),
+        };
 
-            for hash in &hashes.mins {
-                self.query(*hash).for_each(|dataset_idx| {
-                    let idx = counter.entry(dataset_idx).or_insert(0);
-                    *idx += 1;
-                });
-            }
+        let mut counter: HashMap<usize, usize> = HashMap::with_capacity(hashes.size());
 
-            for (idx, count) in counter {
-                let match_sig = &self.datasets[idx];
-                //TODO: still assuming one mh in the signature!
-                let match_mh = match_sig.signatures[0].size();
-
-                let score = if containment {
-                    count as f64 / hashes.size() as f64
-                } else {
-                    count as f64 / (hashes.size() + match_mh - count) as f64
-                };
-
-                if score >= threshold {
-                    results.push(match_sig)
-                }
-            }
-
-            Ok(results)
-        } else {
-            // TODO: what if it is not a minhash?
-            unimplemented!()
+        for hash in &hashes.mins {
+            self.query(*hash).for_each(|dataset_idx| {
+                let idx = counter.entry(dataset_idx).or_insert(0);
+                *idx += 1;
+            });
         }
+
+        for (idx, count) in counter {
+            let match_sig = &self.datasets[idx];
+            //TODO: still assuming one mh in the signature!
+            let match_mh = match_sig.signatures[0].size();
+
+            let score = if containment {
+                count as f64 / hashes.size() as f64
+            } else {
+                count as f64 / (hashes.size() + match_mh - count) as f64
+            };
+
+            if score >= threshold {
+                results.push(match_sig)
+            }
+        }
+
+        Ok(results)
     }
 
     fn insert(&mut self, node: Self::Item) -> Result<(), Error> {

@@ -91,7 +91,7 @@ impl Default for ComputeParameters {
     }
 }
 
-pub fn build_template(params: &ComputeParameters) -> Vec<Sketch> {
+pub fn build_template(params: &ComputeParameters) -> Vec<Box<dyn Sketch>> {
     let max_hash = max_hash_for_scaled(params.scaled).unwrap_or(0);
 
     params
@@ -101,7 +101,7 @@ pub fn build_template(params: &ComputeParameters) -> Vec<Sketch> {
             let mut ksigs = vec![];
 
             if params.protein {
-                ksigs.push(Sketch::MinHash(
+                ksigs.push(Box::new(
                     KmerMinHash::builder()
                         .num(params.num_hashes)
                         .ksize(*k)
@@ -114,11 +114,11 @@ pub fn build_template(params: &ComputeParameters) -> Vec<Sketch> {
                             None
                         })
                         .build(),
-                ));
+                ) as _);
             }
 
             if params.dayhoff {
-                ksigs.push(Sketch::MinHash(
+                ksigs.push(Box::new(
                     KmerMinHash::builder()
                         .num(params.num_hashes)
                         .ksize(*k)
@@ -131,11 +131,11 @@ pub fn build_template(params: &ComputeParameters) -> Vec<Sketch> {
                             None
                         })
                         .build(),
-                ));
+                ) as _);
             }
 
             if params.hp {
-                ksigs.push(Sketch::MinHash(
+                ksigs.push(Box::new(
                     KmerMinHash::builder()
                         .num(params.num_hashes)
                         .ksize(*k)
@@ -148,11 +148,11 @@ pub fn build_template(params: &ComputeParameters) -> Vec<Sketch> {
                             None
                         })
                         .build(),
-                ));
+                ) as _);
             }
 
             if params.dna {
-                ksigs.push(Sketch::MinHash(
+                ksigs.push(Box::new(
                     KmerMinHash::builder()
                         .num(params.num_hashes)
                         .ksize(*k)
@@ -165,7 +165,7 @@ pub fn build_template(params: &ComputeParameters) -> Vec<Sketch> {
                             None
                         })
                         .build(),
-                ));
+                ) as _);
             }
 
             ksigs

@@ -17,7 +17,7 @@ use std::rc::Rc;
 
 use failure::Error;
 use once_cell::sync::OnceCell;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::index::sbt::{Node, SBT};
@@ -25,7 +25,6 @@ use crate::index::search::{search_minhashes, search_minhashes_containment};
 use crate::index::storage::{ReadData, ReadDataError, Storage};
 use crate::signature::Signature;
 use crate::sketch::nodegraph::Nodegraph;
-use crate::sketch::Sketch;
 
 pub type MHBT = SBT<Node<Nodegraph>, Signature>;
 
@@ -181,34 +180,6 @@ impl ReadData<Signature> for SigStore<Signature> {
     }
 }
 
-impl SigStore<Signature> {
-    pub fn count_common(&self, other: &SigStore<Signature>) -> u64 {
-        let ng: &Signature = self.data().unwrap();
-        let ong: &Signature = other.data().unwrap();
-
-        // TODO: select the right signatures...
-        // TODO: better matching here, what if it is not a mh?
-        if let Sketch::MinHash(mh) = &ng.signatures[0] {
-            if let Sketch::MinHash(omh) = &ong.signatures[0] {
-                return mh.count_common(&omh).unwrap() as u64;
-            }
-        }
-        unimplemented!();
-    }
-
-    pub fn mins(&self) -> Vec<u64> {
-        let ng: &Signature = self.data().unwrap();
-
-        // TODO: select the right signatures...
-        // TODO: better matching here, what if it is not a mh?
-        if let Sketch::MinHash(mh) = &ng.signatures[0] {
-            mh.mins.to_vec()
-        } else {
-            unimplemented!()
-        }
-    }
-}
-
 impl From<SigStore<Signature>> for Signature {
     fn from(other: SigStore<Signature>) -> Signature {
         other.data.get().unwrap().to_owned()
@@ -245,21 +216,10 @@ impl Comparable<SigStore<Signature>> for SigStore<Signature> {
 
         // TODO: select the right signatures...
         // TODO: better matching here, what if it is not a mh?
-        if let Sketch::MinHash(mh) = &ng.signatures[0] {
-            if let Sketch::MinHash(omh) = &ong.signatures[0] {
-                return mh.compare(&omh).unwrap();
-            }
-        }
+        let mh = &ng.signatures[0];
+        let omh = &ong.signatures[0];
 
-        /* FIXME: bring back after boomphf changes
-        if let Sketch::UKHS(mh) = &ng.signatures[0] {
-            if let Sketch::UKHS(omh) = &ong.signatures[0] {
-                return 1. - mh.distance(&omh);
-            }
-        }
-        */
-
-        unimplemented!()
+        mh.similarity(&omh).unwrap()
     }
 
     fn containment(&self, other: &SigStore<Signature>) -> f64 {
@@ -268,14 +228,10 @@ impl Comparable<SigStore<Signature>> for SigStore<Signature> {
 
         // TODO: select the right signatures...
         // TODO: better matching here, what if it is not a mh?
-        if let Sketch::MinHash(mh) = &ng.signatures[0] {
-            if let Sketch::MinHash(omh) = &ong.signatures[0] {
-                let common = mh.count_common(&omh).unwrap();
-                let size = mh.mins.len();
-                return common as f64 / size as f64;
-            }
-        }
-        unimplemented!()
+        let mh = &ng.signatures[0];
+        let omh = &ong.signatures[0];
+
+        mh.containment(omh).unwrap()
     }
 }
 
@@ -283,34 +239,18 @@ impl Comparable<Signature> for Signature {
     fn similarity(&self, other: &Signature) -> f64 {
         // TODO: select the right signatures...
         // TODO: better matching here, what if it is not a mh?
-        if let Sketch::MinHash(mh) = &self.signatures[0] {
-            if let Sketch::MinHash(omh) = &other.signatures[0] {
-                return mh.compare(&omh).unwrap();
-            }
-        }
-
-        /* FIXME: bring back after boomphf changes
-        if let Sketch::UKHS(mh) = &self.signatures[0] {
-            if let Sketch::UKHS(omh) = &other.signatures[0] {
-                return 1. - mh.distance(&omh);
-            }
-        }
-        */
-
-        unimplemented!()
+        let mh = &self.signatures[0];
+        let omh = &other.signatures[0];
+        return mh.similarity(&omh).unwrap();
     }
 
     fn containment(&self, other: &Signature) -> f64 {
         // TODO: select the right signatures...
         // TODO: better matching here, what if it is not a mh?
-        if let Sketch::MinHash(mh) = &self.signatures[0] {
-            if let Sketch::MinHash(omh) = &other.signatures[0] {
-                let common = mh.count_common(&omh).unwrap();
-                let size = mh.mins.len();
-                return common as f64 / size as f64;
-            }
-        }
-        unimplemented!()
+        let mh = &self.signatures[0];
+        let omh = &other.signatures[0];
+
+        mh.containment(omh).unwrap()
     }
 }
 

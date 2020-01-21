@@ -4,10 +4,10 @@ use std::slice;
 
 use crate::errors::SourmashError;
 use crate::ffi::utils::SourmashStr;
-use crate::signature::SigsTrait;
 use crate::sketch::minhash::{
     aa_to_dayhoff, aa_to_hp, translate_codon, HashFunctions, KmerMinHash,
 };
+use crate::sketch::Sketch;
 
 #[no_mangle]
 pub unsafe extern "C" fn kmerminhash_new(

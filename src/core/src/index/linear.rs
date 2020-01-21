@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use failure::Error;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::index::storage::{FSStorage, ReadData, Storage, StorageInfo, ToWriter};

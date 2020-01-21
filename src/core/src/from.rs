@@ -41,8 +41,8 @@ mod test {
     use std::collections::HashSet;
     use std::iter::FromIterator;
 
-    use crate::signature::SigsTrait;
     use crate::sketch::minhash::{HashFunctions, KmerMinHash};
+    use crate::sketch::Sketch;
 
     use finch::sketch_schemes::mash::MashSketcher;
     use needletail::kmer::CanonicalKmers;
