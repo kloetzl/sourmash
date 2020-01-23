@@ -7,6 +7,7 @@ use crate::index::sbt::{Factory, FromFactory, Node, Update, SBT};
 use crate::index::storage::{ReadData, ReadDataError, ToWriter};
 use crate::index::Comparable;
 use crate::signature::Signature;
+use crate::sketch::minhash::KmerMinHash;
 use crate::sketch::nodegraph::Nodegraph;
 
 impl ToWriter for Nodegraph {
@@ -48,7 +49,12 @@ impl Update<Node<Nodegraph>> for Signature {
         let mut parent_data = parent.data()?.clone();
 
         let sig = &self.signatures[0];
-        sig.mins.iter().for_each(|h| {
+        let mh = match sig.as_any().downcast_ref::<KmerMinHash>() {
+            Some(h) => h,
+            None => unimplemented!(),
+        };
+
+        mh.mins.iter().for_each(|h| {
             parent_data.count(*h);
         });
 
@@ -92,7 +98,12 @@ impl Comparable<Signature> for Node<Nodegraph> {
             return 0.0;
         }
 
-        let matches: usize = sig.mins.iter().map(|h| ng.get(*h)).sum();
+        let mh = match sig.as_any().downcast_ref::<KmerMinHash>() {
+            Some(h) => h,
+            None => unimplemented!(),
+        };
+
+        let matches: usize = mh.mins.iter().map(|h| ng.get(*h)).sum();
 
         let min_n_below = self.metadata["min_n_below"] as f64;
 
@@ -110,7 +121,12 @@ impl Comparable<Signature> for Node<Nodegraph> {
             return 0.0;
         }
 
-        let matches: usize = sig.mins.iter().map(|h| ng.get(*h)).sum();
+        let mh = match sig.as_any().downcast_ref::<KmerMinHash>() {
+            Some(h) => h,
+            None => unimplemented!(),
+        };
+
+        let matches: usize = mh.mins.iter().map(|h| ng.get(*h)).sum();
 
         matches as f64 / sig.size() as f64
     }
